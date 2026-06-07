@@ -52,7 +52,7 @@ services:
       - SYS_NICE
     volumes:
       - suricata-logs:/var/log/suricata
-      - ./suricata/suricata.yaml:/etc/suricata/suricata.yaml:ro
+      - ./suricata/suricata.yaml:/etc/suricata/suricata.yaml
       - ./suricata/custom.rules:/var/lib/suricata/rules/custom.rules:ro
     # Sesuaikan interface dengan VPS kamu (cek: ip addr). Default: eth0
     command: -i ${SURICATA_INTERFACE:-eth0}
@@ -72,13 +72,10 @@ services:
   evebox:
     image: jasonish/evebox:latest
     ports:
-      # Hanya bind ke localhost - akses via SSH tunnel: ssh -L 5636:127.0.0.1:5636 user@vps
       - "127.0.0.1:5636:5636"
     volumes:
       - suricata-logs:/var/log/suricata:ro
-    command: >
-      -e /var/log/suricata/eve.json
-      --input-bookmark-directory /var/lib/evebox
+    command: server --no-elasticsearch --input /var/log/suricata/eve.json -D /var/lib/evebox
     networks:
       - backend
     restart: unless-stopped
