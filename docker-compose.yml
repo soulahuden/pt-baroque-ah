@@ -13,8 +13,10 @@ services:
       - WAF_MODE=${WAF_MODE:-detect}
       - MONITOR_TOKEN=${MONITOR_TOKEN}
       - EVE_JSON_PATH=/var/log/suricata/eve.json
+      - COWRIE_JSON_PATH=/var/log/cowrie/cowrie.json
     volumes:
       - suricata-logs:/var/log/suricata:ro
+      - cowrie-logs:/var/log/cowrie:ro
     networks:
       - frontend
       - backend
@@ -56,6 +58,17 @@ services:
     command: -i ${SURICATA_INTERFACE:-eth0}
     restart: unless-stopped
 
+  cowrie:
+    image: cowrie/cowrie:latest
+    ports:
+      - "22:2222"    # SSH honeypot — attacker connect ke port 22, masuk ke Cowrie
+      - "23:2223"    # Telnet honeypot (opsional)
+    volumes:
+      - cowrie-logs:/cowrie/var/log/cowrie
+    environment:
+      - COWRIE_HOSTNAME=webserver-prod-01   # nama host palsu yang dilihat attacker
+    restart: unless-stopped
+
   evebox:
     image: jasonish/evebox:latest
     ports:
@@ -79,4 +92,5 @@ networks:
 
 volumes:
   suricata-logs:
+  cowrie-logs:
   mysql-data:

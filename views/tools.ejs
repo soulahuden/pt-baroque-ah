@@ -4,7 +4,7 @@
     <%- include('partials/head') %>
     <title>Tools — PT. Baroque-ah</title>
 </head>
-<body class="text-black min-h-screen flex flex-col relative overflow-hidden hero-gradient">
+<body class="text-black min-h-screen flex flex-col relative overflow-x-hidden hero-gradient">
 
     <img src="/img/bg.png" alt="" class="bg-img" onerror="this.style.display='none'">
     <div class="hero-overlay"></div>
@@ -18,7 +18,6 @@
             <p class="text-gray-500 text-sm mt-1">Target: Command Injection — input langsung dijalankan di shell container</p>
         </div>
 
-        <!-- Ping tool -->
         <div class="bg-white/70 backdrop-blur-md border border-gray-200 rounded-3xl shadow-xl p-6 mb-6">
             <h3 class="text-base font-semibold mb-4 flex items-center gap-2">
                 <span class="w-6 h-6 bg-black rounded-full flex items-center justify-center text-white text-xs">P</span>
@@ -43,7 +42,6 @@
                 <code class="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-mono">127.0.0.1; cat /etc/passwd</code>
             </div>
 
-            <!-- Command yang dieksekusi -->
             <% if (cmd) { %>
             <div class="mt-4 bg-white/50 border border-gray-200 rounded-xl px-4 py-2">
                 <p class="text-[10px] text-gray-400 font-semibold">Command yang dieksekusi:</p>
@@ -52,7 +50,6 @@
             <% } %>
         </div>
 
-        <!-- Output terminal -->
         <% if (output !== null) { %>
         <div class="bg-gray-950 border border-gray-800 rounded-3xl p-6 shadow-xl">
             <div class="flex items-center gap-2 mb-4">

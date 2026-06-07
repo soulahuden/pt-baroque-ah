@@ -12,8 +12,6 @@ const app    = express();
 const server = http.createServer(app);
 const io     = new Server(server);
 
-// ─── Middleware setup ────────────────────────────────────────────────────────
-
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
@@ -26,11 +24,7 @@ app.use(session({
     cookie:            { maxAge: 24 * 60 * 60 * 1000 }
 }));
 
-// WAF middleware — Fase 2. Dipasang SEBELUM semua route.
-// Terpisah dari kode endpoint rentan: endpoint tidak dimodifikasi sama sekali.
 app.use(require('./lib/waf')(io));
-
-// ─── Database ────────────────────────────────────────────────────────────────
 
 let db;
 
@@ -40,7 +34,6 @@ async function connectDB() {
         user:     process.env.DB_USER     || 'demo',
         password: process.env.DB_PASS     || 'demo',
         database: process.env.DB_NAME     || 'demoids',
-        // multipleStatements: false (default) — UNION SELECT tetap bisa; yang tidak bisa: stacked queries (';')
     };
 
     for (let i = 1; i <= 20; i++) {
@@ -58,41 +51,30 @@ async function connectDB() {
     process.exit(1);
 }
 
-// Helper: ambil IP client (support X-Forwarded-For dari reverse proxy)
 function clientIP(req) {
     return req.headers['x-forwarded-for']?.split(',')[0]?.trim()
         || req.socket.remoteAddress
         || 'unknown';
 }
 
-// ─── Socket.io ───────────────────────────────────────────────────────────────
-
 io.on('connection', (socket) => {
-    // Client yang join sebagai monitor mendapat stream event
     socket.on('join-monitor', () => socket.join('monitor-room'));
 });
 
-// Fungsi ini akan dipakai oleh WAF (Fase 2) dan Honeypot (Fase 4) untuk emit event
-// Dideklarasikan global supaya bisa diakses dari modul lain
 global.emitEvent = async (event) => {
     try {
-        // Simpan ke DB
         await db.query(
             `INSERT INTO events (layer, attack_type, nickname, src_ip, route, method, payload, severity)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             [event.layer, event.attack_type, event.nickname, event.src_ip,
              event.route, event.method, event.payload?.substring(0, 200), event.severity || 'medium']
         );
-        // Broadcast ke semua monitor yang connect
         io.to('monitor-room').emit('new-event', { ...event, ts: new Date().toISOString() });
     } catch (err) {
         console.error('[EVENT]', err.message);
     }
 };
 
-// ─── robots.txt — bait honeypot ──────────────────────────────────────────────
-
-// Mendaftarkan path honeypot supaya "ditemukan" oleh yang membaca robots.txt
 app.get('/robots.txt', (req, res) => {
     res.type('text/plain');
     res.send([
@@ -104,10 +86,7 @@ app.get('/robots.txt', (req, res) => {
     ].join('\n'));
 });
 
-// ─── Landing & nickname ───────────────────────────────────────────────────────
-
 app.get('/', (req, res) => {
-    // <!-- TODO: hapus login lama di /secret-login --> (komentar bait di HTML output)
     res.render('index', { session: req.session });
 });
 
@@ -117,9 +96,6 @@ app.post('/set-nickname', (req, res) => {
     res.redirect('/');
 });
 
-// ─── /login — VULNERABLE: SQL Injection ──────────────────────────────────────
-// JANGAN PERBAIKI: kerentanan ini disengaja untuk demo
-
 app.get('/login', (req, res) => {
     res.render('login', { session: req.session, error: null, user: null, rawQuery: null });
 });
@@ -128,8 +104,6 @@ app.post('/login', async (req, res) => {
     const username = req.body.username || '';
     const password = req.body.password || '';
 
-    // Interpolasi string langsung — SENGAJA rentan SQL injection
-    // Payload bypass: username = ' OR '1'='1' --
     const rawQuery = `SELECT * FROM users WHERE username='${username}' AND password='${password}'`;
 
     try {
@@ -139,10 +113,9 @@ app.post('/login', async (req, res) => {
             session:  req.session,
             error:    user ? null : 'Login gagal. Username atau password salah.',
             user,
-            rawQuery, // ditampilkan di halaman untuk edukasi
+            rawQuery,
         });
     } catch (err) {
-        // Error MySQL juga ditampilkan — berguna untuk error-based SQLi
         res.render('login', {
             session:  req.session,
             error:    `MySQL Error: ${err.message}`,
@@ -151,9 +124,6 @@ app.post('/login', async (req, res) => {
         });
     }
 });
-
-// ─── /comments — VULNERABLE: Stored XSS ─────────────────────────────────────
-// JANGAN PERBAIKI: gunakan <%- %> di EJS (bukan <%=>) supaya XSS bisa berjalan
 
 app.get('/comments', async (req, res) => {
     const [comments] = await db.query('SELECT * FROM comments ORDER BY created_at DESC');
@@ -164,15 +134,11 @@ app.post('/comments', async (req, res) => {
     const body     = req.body.body || '';
     const nickname = req.session.nickname || 'anonymous';
 
-    // Simpan raw tanpa sanitasi — <script>alert('XSS')</script> tersimpan apa adanya
     await db.query('INSERT INTO comments (nickname, body) VALUES (?, ?)', [nickname, body]);
 
     const [comments] = await db.query('SELECT * FROM comments ORDER BY created_at DESC');
     res.render('comments', { session: req.session, comments, posted: true });
 });
-
-// ─── /search — VULNERABLE: Reflected XSS + SQLi UNION ───────────────────────
-// JANGAN PERBAIKI: q direfleksikan tanpa escaping ke halaman
 
 app.get('/search', async (req, res) => {
     const q = req.query.q || '';
@@ -181,8 +147,6 @@ app.get('/search', async (req, res) => {
     let rawQuery = null;
 
     if (q) {
-        // Interpolasi string langsung — rentan UNION-based SQLi
-        // Payload: ' UNION SELECT 1,username,secret_flag,4 FROM users--
         rawQuery = `SELECT * FROM comments WHERE body LIKE '%${q}%'`;
         try {
             const [rows] = await db.query(rawQuery);
@@ -192,12 +156,8 @@ app.get('/search', async (req, res) => {
         }
     }
 
-    // q dikirim ke view dengan <%- %> — rentan Reflected XSS
     res.render('search', { session: req.session, q, results, dbError, rawQuery });
 });
-
-// ─── /tools — VULNERABLE: Command Injection ──────────────────────────────────
-// JANGAN PERBAIKI: exec() berjalan di shell — ; | && semuanya aktif
 
 app.get('/tools', (req, res) => {
     res.render('tools', { session: req.session, output: null, host: '', cmd: null });
@@ -205,10 +165,7 @@ app.get('/tools', (req, res) => {
 
 app.post('/tools/ping', (req, res) => {
     const host = req.body.host || '127.0.0.1';
-
-    // PERINGATAN: endpoint ini hanya aman di container terisolasi
-    // Payload: 127.0.0.1; id    atau    127.0.0.1 | cat /etc/passwd
-    const cmd = `ping -c 2 ${host}`;
+    const cmd  = `ping -c 2 ${host}`;
 
     exec(cmd, { timeout: 8000 }, (error, stdout, stderr) => {
         const output = [stdout, stderr].filter(Boolean).join('\n')
@@ -217,14 +174,8 @@ app.post('/tools/ping', (req, res) => {
     });
 });
 
-// ─── /view — VULNERABLE: Path Traversal ──────────────────────────────────────
-// JANGAN PERBAIKI: path.join dengan input user bisa keluar dari folder target
-
 app.get('/view', (req, res) => {
     const file     = req.query.file || 'public/docs/readme.txt';
-
-    // path.join merespek .. — file=../../etc/passwd bisa baca /etc/passwd
-    // Dari /app: path.join('/app', '../../etc/passwd') = '/etc/passwd'
     const filePath = path.join(__dirname, file);
 
     try {
@@ -238,10 +189,6 @@ app.get('/view', (req, res) => {
     }
 });
 
-// ─── Placeholder routes untuk fase berikutnya ────────────────────────────────
-
-// ─── /monitor — live dashboard (Fase 3) ──────────────────────────────────────
-
 app.get('/monitor', async (req, res) => {
     const token = req.query.token || '';
     if (!process.env.MONITOR_TOKEN || token !== process.env.MONITOR_TOKEN) {
@@ -254,12 +201,10 @@ display:flex;align-items:center;justify-content:center;height:100vh;margin:0;tex
     }
 
     try {
-        // Event terbaru (60), dikirim ke client dalam urutan DESC (terbaru di atas)
         const [events] = await db.query(
             'SELECT * FROM events ORDER BY ts DESC LIMIT 60'
         );
 
-        // Leaderboard: ranking berdasar total serangan per nickname
         const [leaderboard] = await db.query(`
             SELECT nickname,
                 COUNT(*) AS total,
@@ -274,7 +219,6 @@ display:flex;align-items:center;justify-content:center;height:100vh;margin:0;tex
             LIMIT 15
         `);
 
-        // Statistik global
         const [[stats]] = await db.query(`
             SELECT
                 COUNT(*)                             AS total,
@@ -291,8 +235,6 @@ display:flex;align-items:center;justify-content:center;height:100vh;margin:0;tex
         const emptyStats = { total:0, unique_users:0, sqli:0, xss:0,
             path_traversal:0, command_injection:0, honeypot:0, suricata:0 };
 
-        // Escape < > & supaya payload XSS (mis. </script>) tidak memutus script block di HTML
-        // < / > adalah Unicode escape yang valid di JS tapi tidak dikenali HTML parser
         const safeJson = (o) => JSON.stringify(o)
             .replace(/</g, '\\u003c')
             .replace(/>/g, '\\u003e')
@@ -300,7 +242,7 @@ display:flex;align-items:center;justify-content:center;height:100vh;margin:0;tex
 
         res.render('monitor', {
             token,
-            events,                              // hanya untuk cek .length di EJS
+            events,
             stats:           stats || emptyStats,
             eventsJson:      safeJson(events),
             leaderboardJson: safeJson(leaderboard),
@@ -311,15 +253,9 @@ display:flex;align-items:center;justify-content:center;height:100vh;margin:0;tex
     }
 });
 
-// ─── /play — daftar tantangan peserta (Fase 6) ───────────────────────────────
 app.get('/play', (req, res) => {
     res.render('play', { session: req.session });
 });
-
-// ─── /admin-backup & /secret-login — Honeypot (Fase 4) ──────────────────────
-// Endpoint ini TIDAK punya fungsi sah — SEMUA akses adalah anomali.
-// 0 false positive: tidak ada pengguna legitimate yang punya alasan ke sini.
-// Bait terpasang di: robots.txt, komentar HTML index, link tersembunyi di /comments.
 
 async function honeypotHandler(req, res) {
     const username = (req.body?.username || '').substring(0, 60);
@@ -333,8 +269,7 @@ async function honeypotHandler(req, res) {
         src_ip:      clientIP(req),
         route:       req.path,
         method:      req.method,
-        // Catat kredensial yang diketik — ditampilkan di monitor untuk edukasi
-        payload: isPost
+        payload:     isPost
             ? `username="${username}" password="${password}"`
             : `[GET] ${req.path}`,
         severity: 'high',
@@ -344,22 +279,16 @@ async function honeypotHandler(req, res) {
         try { await global.emitEvent(event); } catch (_) {}
     }
 
-    // Selalu tampilkan halaman login — tidak pernah benar-benar login
-    // Pesan "gagal" membuat attacker terus mencoba → lebih banyak event di monitor
     res.render('honeypot', {
         session:     req.session,
         route:       req.path,
         loginFailed: isPost,
-        username,   // pre-fill username supaya terasa realistis
+        username,
     });
 }
 
 app.get( ['/admin-backup', '/secret-login'], honeypotHandler);
 app.post(['/admin-backup', '/secret-login'], honeypotHandler);
-
-// ─── /api/reset — hapus semua events + komentar (hanya monitor token) ────────
-// Proteksi: token yang sama dengan /monitor — peserta biasa tidak punya token ini.
-// Setelah reset, emit socket 'reset' agar SEMUA klien monitor ikut bersih serentak.
 
 app.post('/api/reset', async (req, res) => {
     const token = req.query.token || '';
@@ -369,22 +298,15 @@ app.post('/api/reset', async (req, res) => {
     try {
         await db.query('DELETE FROM events');
         await db.query('DELETE FROM comments');
-        // Kembalikan satu komentar awal supaya halaman /comments tidak kosong total
         await db.query(
             "INSERT INTO comments (nickname, body) VALUES ('system', 'Selamat datang di PT. Baroque-ah! Silakan tinggalkan komentar atau pertanyaan di sini.')"
         );
-        // Broadcast reset ke semua tab monitor yang sedang buka
         io.to('monitor-room').emit('reset');
         res.json({ ok: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
-
-// ─── /api/test-suricata — inject event Suricata dummy (Fase 5 debug) ─────────
-// Berguna karena volume suricata-logs di-mount :ro di container app,
-// sehingga test-eve.js tidak bisa nulis file langsung dari sini.
-// Endpoint ini bypass file — panggil global.emitEvent langsung.
 
 const TEST_SIGS = [
     { sig: 'DEMO SQLi - UNION SELECT detected', sid: 1000001, sev: 2, url: '/search' },
@@ -402,12 +324,12 @@ app.get('/api/test-suricata', async (req, res) => {
         return res.status(401).json({ error: 'Token diperlukan: ?token=MONITOR_TOKEN' });
     }
 
-    const count = Math.min(parseInt(req.query.count) || 1, 10);
+    const count    = Math.min(parseInt(req.query.count) || 1, 10);
     const injected = [];
 
     for (let i = 0; i < count; i++) {
-        const pick = TEST_SIGS[Math.floor(Math.random() * TEST_SIGS.length)];
-        const sev  = pick.sev <= 1 ? 'critical' : pick.sev === 2 ? 'high' : 'medium';
+        const pick  = TEST_SIGS[Math.floor(Math.random() * TEST_SIGS.length)];
+        const sev   = pick.sev <= 1 ? 'critical' : pick.sev === 2 ? 'high' : 'medium';
         const event = {
             layer:       'network-suricata',
             attack_type: pick.sig,
@@ -427,18 +349,16 @@ app.get('/api/test-suricata', async (req, res) => {
     res.json({ ok: true, count: injected.length, injected });
 });
 
-// ─── 404 ──────────────────────────────────────────────────────────────────────
-
 app.use((req, res) => {
     res.status(404).render('404', { session: req.session });
 });
 
-// ─── Start ────────────────────────────────────────────────────────────────────
-
 connectDB().then(() => {
-    // Fase 5: mulai tailer Suricata eve.json setelah DB siap
-    // global.emitEvent sudah terdefinisi, jadi alert langsung masuk ke DB + monitor
     require('./lib/eve-tailer')();
+
+    if (process.env.COWRIE_JSON_PATH) {
+        require('./lib/cowrie-tailer')();
+    }
 
     const PORT = process.env.PORT || 3000;
     server.listen(PORT, '0.0.0.0', () => {

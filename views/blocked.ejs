@@ -26,16 +26,13 @@
 </head>
 <body class="bg-neutral-950 text-white min-h-screen flex flex-col items-center justify-center p-8">
 
-    <!-- Siren icon -->
     <div class="w-28 h-28 bg-red-600/15 border-2 border-red-500/60 rounded-full flex items-center justify-center mb-8 siren">
         <span class="text-6xl select-none">🚨</span>
     </div>
 
-    <!-- Heading -->
     <h1 class="text-7xl font-black text-red-500 tracking-tight mb-3 text-center shake">KETAHUAN!</h1>
     <p class="text-xl font-semibold text-gray-300 mb-10 text-center">Input kamu terdeteksi &amp; diblokir oleh WAF</p>
 
-    <!-- Detail card -->
     <div class="bg-white/[0.04] border border-red-500/25 rounded-3xl p-8 max-w-2xl w-full mb-8 backdrop-blur-md">
 
         <div class="grid grid-cols-2 gap-4 mb-6">
@@ -61,14 +58,12 @@
             </div>
         </div>
 
-        <!-- Payload display -->
         <div class="bg-black/50 border border-gray-800 rounded-2xl p-4">
             <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">Payload yang terdeteksi</p>
             <pre class="text-red-300 text-sm font-mono whitespace-pre-wrap break-all leading-relaxed"><%- event.payload %></pre>
         </div>
     </div>
 
-    <!-- Edukasi -->
     <div class="bg-blue-950/40 border border-blue-700/30 rounded-2xl px-6 py-5 max-w-2xl w-full mb-8">
         <p class="text-sm text-blue-200 leading-relaxed text-center">
             Ini adalah mode <strong class="text-white">IPS (block)</strong> — serangan dihentikan sebelum menyentuh server.<br>
@@ -77,10 +72,8 @@
         </p>
     </div>
 
-    <!-- IP info -->
     <p class="text-gray-600 text-xs mb-6">IP: <%= event.src_ip %> &middot; Event sudah tercatat di monitor &amp; leaderboard.</p>
 
-    <!-- Back button -->
     <a href="/"
        class="bg-white text-black px-10 py-3 rounded-full text-sm font-bold hover:bg-gray-200 transition shadow-lg">
         ← Kembali &amp; Coba Lagi
