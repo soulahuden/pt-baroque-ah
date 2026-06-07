@@ -53,7 +53,7 @@ services:
     volumes:
       - suricata-logs:/var/log/suricata
       - ./suricata/suricata.yaml:/etc/suricata/suricata.yaml
-      - ./suricata/custom.rules:/var/lib/suricata/rules/custom.rules:ro
+      - ./suricata/custom.rules:/var/lib/suricata/rules/custom.rules
     # Sesuaikan interface dengan VPS kamu (cek: ip addr). Default: eth0
     command: -i ${SURICATA_INTERFACE:-eth0}
     restart: unless-stopped
@@ -69,16 +69,6 @@ services:
       - COWRIE_HOSTNAME=webserver-prod-01   # nama host palsu yang dilihat attacker
     restart: unless-stopped
 
-  evebox:
-    image: jasonish/evebox:latest
-    ports:
-      - "127.0.0.1:5636:5636"
-    volumes:
-      - suricata-logs:/var/log/suricata:ro
-    command: server --no-elasticsearch --input /var/log/suricata/eve.json -D /var/lib/evebox
-    networks:
-      - backend
-    restart: unless-stopped
 
 networks:
   frontend:
