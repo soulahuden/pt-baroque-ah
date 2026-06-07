@@ -54,19 +54,18 @@ services:
       - suricata-logs:/var/log/suricata
       - ./suricata/suricata.yaml:/etc/suricata/suricata.yaml
       - ./suricata/custom.rules:/var/lib/suricata/rules/custom.rules
-    # Sesuaikan interface dengan VPS kamu (cek: ip addr). Default: eth0
     command: -i ${SURICATA_INTERFACE:-eth0}
     restart: unless-stopped
 
   cowrie:
     image: cowrie/cowrie:latest
     ports:
-      - "22:2222"    # SSH honeypot — attacker connect ke port 22, masuk ke Cowrie
-      - "23:2223"    # Telnet honeypot (opsional)
+      - "22:2222"
+      - "23:2223"
     volumes:
       - cowrie-logs:/cowrie/var/log/cowrie
     environment:
-      - COWRIE_HOSTNAME=webserver-prod-01   # nama host palsu yang dilihat attacker
+      - COWRIE_HOSTNAME=webserver-prod-01
     restart: unless-stopped
 
 
