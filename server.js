@@ -189,8 +189,32 @@ app.get('/view', (req, res) => {
     }
 });
 
+const HONEYPOT_ENV_TOKEN = 'sk-monitor-prod-baroque-2024-internal';
+
 app.get('/monitor', async (req, res) => {
     const token = req.query.token || '';
+
+    if (token === HONEYPOT_ENV_TOKEN) {
+        try {
+            await global.emitEvent({
+                layer:       'honeypot',
+                attack_type: 'credential_theft',
+                nickname:    req.session?.nickname || 'anonymous',
+                src_ip:      clientIP(req),
+                route:       '/monitor',
+                method:      'GET',
+                payload:     `Used fake MONITOR_TOKEN from .env leak via command injection`,
+                severity:    'critical',
+            });
+        } catch (_) {}
+        return res.status(401).send(`<!DOCTYPE html>
+<html><head><style>body{background:#0a0a0a;color:#fff;font-family:monospace;
+display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center}</style></head>
+<body><div><h1 style="font-size:3rem;color:#ef4444">401</h1>
+<p>Token diperlukan untuk mengakses monitor.</p>
+<p style="color:#6b7280">Buka: /monitor?token=TOKEN_KAMU</p></div></body></html>`);
+    }
+
     if (!process.env.MONITOR_TOKEN || token !== process.env.MONITOR_TOKEN) {
         return res.status(401).send(`<!DOCTYPE html>
 <html><head><style>body{background:#0a0a0a;color:#fff;font-family:monospace;
