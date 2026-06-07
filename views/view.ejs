@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <%- include('partials/head') %>
+    <title>View File — PT. Baroque-ah</title>
+</head>
+<body class="text-black min-h-screen flex flex-col relative overflow-hidden hero-gradient">
+
+    <img src="/img/bg.png" alt="" class="bg-img" onerror="this.style.display='none'">
+    <div class="hero-overlay"></div>
+
+    <%- include('partials/nav', { current: '' }) %>
+
+    <main class="relative z-20 flex-grow px-8 py-8 max-w-3xl mx-auto w-full">
+
+        <div class="mb-6">
+            <h2 class="text-3xl font-bold tracking-tight">File Viewer</h2>
+            <p class="text-gray-500 text-sm mt-1">Target: Path Traversal — parameter file tidak divalidasi</p>
+        </div>
+
+        <!-- URL form -->
+        <div class="bg-white/70 backdrop-blur-md border border-gray-200 rounded-3xl shadow-xl p-6 mb-6">
+            <form action="/view" method="GET" class="flex gap-3 mb-3">
+                <input type="text" name="file"
+                    value="<%= file %>"
+                    placeholder="public/docs/readme.txt"
+                    class="flex-1 bg-white/80 border border-gray-200 rounded-full px-5 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-black/20">
+                <button type="submit"
+                    class="bg-black text-white px-7 py-3 rounded-full text-sm font-semibold hover:bg-gray-800 transition shadow-md">
+                    Baca
+                </button>
+            </form>
+            <div class="flex flex-wrap gap-2">
+                <span class="text-[10px] text-gray-400 font-semibold">Payload hint:</span>
+                <code class="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-mono">../../etc/passwd</code>
+                <code class="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-mono">../../etc/hostname</code>
+                <code class="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-mono">../../proc/version</code>
+            </div>
+
+            <!-- Path yang diakses -->
+            <div class="mt-3 bg-white/50 border border-gray-200 rounded-xl px-4 py-2">
+                <p class="text-[10px] text-gray-400 font-semibold">Resolved path:</p>
+                <code class="text-xs font-mono text-gray-700"><%= filePath %></code>
+            </div>
+        </div>
+
+        <!-- File content -->
+        <% if (error) { %>
+        <div class="bg-red-50 border border-red-200 rounded-2xl px-5 py-4 text-sm text-red-700 font-mono">
+            Error: <%= error %>
+        </div>
+        <% } else if (content !== null) { %>
+        <div class="bg-gray-950 border border-gray-800 rounded-3xl p-6 shadow-xl">
+            <div class="flex items-center gap-2 mb-4">
+                <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                <span class="text-gray-400 text-xs ml-2 font-mono"><%= file %></span>
+            </div>
+            <pre class="text-green-300 text-sm font-mono whitespace-pre-wrap break-all leading-relaxed"><%= content %></pre>
+        </div>
+        <% } %>
+
+    </main>
+
+</body>
+</html>

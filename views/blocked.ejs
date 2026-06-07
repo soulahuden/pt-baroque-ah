@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KETAHUAN! — PT. Baroque-ah</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+
+        @keyframes siren {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+            50%       { box-shadow: 0 0 60px 20px rgba(239,68,68,0.25); }
+        }
+        @keyframes shake {
+            0%,100% { transform: translateX(0); }
+            20%      { transform: translateX(-6px); }
+            40%      { transform: translateX(6px); }
+            60%      { transform: translateX(-4px); }
+            80%      { transform: translateX(4px); }
+        }
+        .siren   { animation: siren 1.4s ease-in-out infinite; }
+        .shake   { animation: shake 0.5s ease-in-out; }
+    </style>
+</head>
+<body class="bg-neutral-950 text-white min-h-screen flex flex-col items-center justify-center p-8">
+
+    <!-- Siren icon -->
+    <div class="w-28 h-28 bg-red-600/15 border-2 border-red-500/60 rounded-full flex items-center justify-center mb-8 siren">
+        <span class="text-6xl select-none">🚨</span>
+    </div>
+
+    <!-- Heading -->
+    <h1 class="text-7xl font-black text-red-500 tracking-tight mb-3 text-center shake">KETAHUAN!</h1>
+    <p class="text-xl font-semibold text-gray-300 mb-10 text-center">Input kamu terdeteksi &amp; diblokir oleh WAF</p>
+
+    <!-- Detail card -->
+    <div class="bg-white/[0.04] border border-red-500/25 rounded-3xl p-8 max-w-2xl w-full mb-8 backdrop-blur-md">
+
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="bg-white/[0.05] rounded-2xl p-4">
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Penyerang</p>
+                <p class="text-xl font-bold text-white"><%= event.nickname %></p>
+            </div>
+            <div class="bg-red-950/50 border border-red-900/40 rounded-2xl p-4">
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Jenis Serangan</p>
+                <p class="text-xl font-bold text-red-400"><%= label %></p>
+            </div>
+            <div class="bg-white/[0.05] rounded-2xl p-4">
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Route</p>
+                <p class="text-base font-mono text-yellow-300"><%= event.method %>&nbsp;<%= event.route %></p>
+            </div>
+            <div class="bg-white/[0.05] rounded-2xl p-4">
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Severity</p>
+                <%
+                    const sevColor = { critical: 'text-red-400', high: 'text-orange-400', medium: 'text-yellow-400', low: 'text-blue-400' };
+                    const sc = sevColor[event.severity] || 'text-gray-300';
+                %>
+                <p class="text-xl font-black uppercase <%= sc %>"><%= event.severity %></p>
+            </div>
+        </div>
+
+        <!-- Payload display -->
+        <div class="bg-black/50 border border-gray-800 rounded-2xl p-4">
+            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">Payload yang terdeteksi</p>
+            <pre class="text-red-300 text-sm font-mono whitespace-pre-wrap break-all leading-relaxed"><%- event.payload %></pre>
+        </div>
+    </div>
+
+    <!-- Edukasi -->
+    <div class="bg-blue-950/40 border border-blue-700/30 rounded-2xl px-6 py-5 max-w-2xl w-full mb-8">
+        <p class="text-sm text-blue-200 leading-relaxed text-center">
+            Ini adalah mode <strong class="text-white">IPS (block)</strong> — serangan dihentikan sebelum menyentuh server.<br>
+            Ganti env <code class="font-mono bg-black/30 px-1.5 py-0.5 rounded text-yellow-300">WAF_MODE=detect</code>
+            untuk mode <strong class="text-white">IDS</strong>: serangan <em>berhasil</em>, tapi tetap tercatat di monitor.
+        </p>
+    </div>
+
+    <!-- IP info -->
+    <p class="text-gray-600 text-xs mb-6">IP: <%= event.src_ip %> &middot; Event sudah tercatat di monitor &amp; leaderboard.</p>
+
+    <!-- Back button -->
+    <a href="/"
+       class="bg-white text-black px-10 py-3 rounded-full text-sm font-bold hover:bg-gray-200 transition shadow-lg">
+        ← Kembali &amp; Coba Lagi
+    </a>
+
+</body>
+</html>

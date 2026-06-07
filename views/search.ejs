@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <%- include('partials/head') %>
+    <title>Search — PT. Baroque-ah</title>
+</head>
+<body class="text-black min-h-screen flex flex-col relative overflow-hidden hero-gradient">
+
+    <img src="/img/bg.png" alt="" class="bg-img" onerror="this.style.display='none'">
+    <div class="hero-overlay"></div>
+
+    <%- include('partials/nav', { current: 'search' }) %>
+
+    <main class="relative z-20 flex-grow px-8 py-8 max-w-3xl mx-auto w-full">
+
+        <div class="mb-6">
+            <h2 class="text-3xl font-bold tracking-tight">Search</h2>
+            <p class="text-gray-500 text-sm mt-1">Target: Reflected XSS + SQLi UNION — q direfleksikan tanpa escaping</p>
+        </div>
+
+        <!-- Search form -->
+        <form action="/search" method="GET"
+              class="bg-white/70 backdrop-blur-md border border-gray-200 rounded-3xl shadow-xl p-6 mb-6">
+            <div class="flex gap-3">
+                <input type="text" name="q"
+                    value="<%= q %>"
+                    placeholder="Cari komentar… atau masukkan payload"
+                    class="flex-1 bg-white/80 border border-gray-200 rounded-full px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/20">
+                <button type="submit"
+                    class="bg-black text-white px-7 py-3 rounded-full text-sm font-semibold hover:bg-gray-800 transition shadow-md">
+                    Cari
+                </button>
+            </div>
+            <div class="flex flex-wrap gap-2 mt-3">
+                <span class="text-[10px] text-gray-400 font-semibold">Payload hint:</span>
+                <code class="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-mono">&lt;img src=x onerror=alert(1)&gt;</code>
+                <code class="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-mono">' UNION SELECT 1,username,secret_flag,4 FROM users--</code>
+            </div>
+        </form>
+
+        <% if (q) { %>
+
+        <!-- Reflected XSS zone — q ditampilkan tanpa escaping -->
+        <div class="bg-white/65 backdrop-blur-md border border-orange-200 rounded-2xl p-4 mb-5 shadow-sm">
+            <p class="text-xs font-semibold text-orange-600 mb-1">Reflected — nilai q ditampilkan langsung:</p>
+            <div class="text-sm font-mono"><%- q %></div>
+        </div>
+
+        <!-- Raw query display -->
+        <% if (rawQuery) { %>
+        <div class="bg-white/50 border border-gray-200 rounded-2xl p-4 mb-5 shadow-sm">
+            <p class="text-xs font-semibold text-gray-500 mb-1">Query yang dieksekusi:</p>
+            <pre class="text-xs font-mono text-gray-800 whitespace-pre-wrap break-all"><%= rawQuery %></pre>
+        </div>
+        <% } %>
+
+        <!-- DB error (berguna untuk error-based SQLi) -->
+        <% if (dbError) { %>
+        <div class="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mb-5 text-xs text-red-700 font-mono">
+            MySQL Error: <%= dbError %>
+        </div>
+        <% } %>
+
+        <!-- Hasil query -->
+        <div class="flex flex-col gap-3">
+            <% if (results.length === 0 && !dbError) { %>
+            <div class="bg-white/50 border border-gray-100 rounded-2xl px-6 py-4 text-sm text-gray-400 text-center">
+                Tidak ada hasil.
+            </div>
+            <% } %>
+            <% results.forEach(function(row) { %>
+            <div class="bg-white/65 backdrop-blur-md border border-gray-200 rounded-2xl px-5 py-4 shadow-sm">
+                <div class="flex items-center justify-between mb-1">
+                    <!-- Kolom 2 = nickname (dari UNION bisa berisi username) -->
+                    <span class="text-xs font-semibold text-gray-700"><%= row.nickname || row[1] || '' %></span>
+                    <span class="text-[10px] text-gray-400">#<%= row.id || row[0] %></span>
+                </div>
+                <!-- Kolom 3 = body (dari UNION bisa berisi secret_flag) -->
+                <div class="text-sm text-gray-800 font-mono"><%= row.body || row[2] || '' %></div>
+            </div>
+            <% }); %>
+        </div>
+
+        <% } %>
+
+    </main>
+
+</body>
+</html>

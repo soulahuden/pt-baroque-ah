@@ -1,0 +1,3 @@
+Taruh file bg.png di folder ini untuk mengganti background hero.
+Gambar akan di-stretch full-screen dengan object-fit: cover.
+Fallback: gradient biru-ungu-pink otomatis tampil jika file tidak ada.

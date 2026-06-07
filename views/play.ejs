@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <%- include('partials/head') %>
+    <title>Cara Main — PT. Baroque-ah</title>
+    <style>
+        .code-pill {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 11px;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body class="text-black min-h-screen flex flex-col relative overflow-hidden hero-gradient">
+
+    <img src="/img/bg.png" alt="" class="bg-img" onerror="this.style.display='none'">
+    <div class="hero-overlay"></div>
+
+    <%- include('partials/nav', { current: 'play' }) %>
+
+    <main class="relative z-20 flex-grow px-8 py-8">
+        <div class="max-w-4xl mx-auto">
+
+            <!-- Header -->
+            <div class="text-center mb-10">
+                <div class="flex items-center justify-center bg-white/60 backdrop-blur-md border border-gray-200 rounded-full pr-4 pl-1 py-1 w-fit mx-auto mb-6 shadow-sm">
+                    <span class="bg-black text-white text-[10px] font-bold px-2.5 py-1 rounded-full mr-3">DEMO</span>
+                    <span class="text-xs text-gray-800 font-semibold tracking-wide">Live Security Lab — Daftar Tantangan</span>
+                </div>
+                <h1 class="text-5xl font-bold tracking-tight mb-3">Cara Main</h1>
+                <p class="text-gray-600 text-base max-w-xl mx-auto leading-relaxed">
+                    Semua aktivitas dipantau realtime di monitor. Masukkan nickname kamu dulu di
+                    <a href="/" class="underline font-semibold hover:text-black transition">halaman utama</a>
+                    supaya namamu muncul di leaderboard.
+                </p>
+                <% if (!session.nickname) { %>
+                <a href="/"
+                   class="inline-block mt-4 bg-black text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-gray-800 transition shadow-md">
+                    Set Nickname Dulu →
+                </a>
+                <% } else { %>
+                <p class="mt-3 text-sm text-gray-500">
+                    Main sebagai: <strong class="text-black"><%= session.nickname %></strong>
+                </p>
+                <% } %>
+            </div>
+
+            <!-- Grid tantangan -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                <%
+                const challenges = [
+                  {
+                    num: 1,
+                    title: 'Login Bypass',
+                    tag: 'SQL Injection',
+                    tagColor: 'bg-orange-100 text-orange-700 border-orange-200',
+                    desc: 'Bypass login tanpa password yang benar dan ambil FLAG rahasia dari database.',
+                    hints: [
+                      { label: 'Username', code: "' OR '1'='1' --" },
+                      { label: 'Password', code: '(kosongkan atau isi bebas)' },
+                    ],
+                    target: '/login',
+                    btnLabel: 'Buka /login →',
+                  },
+                  {
+                    num: 2,
+                    title: 'Komentar Jahat',
+                    tag: 'Stored XSS',
+                    tagColor: 'bg-purple-100 text-purple-700 border-purple-200',
+                    desc: 'Tulis komentar yang mengandung script — akan jalan di browser SEMUA orang yang membuka halaman ini.',
+                    hints: [
+                      { label: 'Payload dasar', code: "<script>alert('Hacked!')</script>" },
+                      { label: 'Payload cookie', code: "<script>alert(document.cookie)</script>" },
+                      { label: 'Alternatif (no script)', code: "<img src=x onerror=alert(1)>" },
+                    ],
+                    target: '/comments',
+                    btnLabel: 'Buka /comments →',
+                  },
+                  {
+                    num: 3,
+                    title: 'Cari yang Gak Ada',
+                    tag: 'Reflected XSS + SQLi UNION',
+                    tagColor: 'bg-pink-100 text-pink-700 border-pink-200',
+                    desc: 'Kolom pencarian merefleksikan input tanpa filter. Bisa XSS sekaligus — bisa extract data rahasia dari database.',
+                    hints: [
+                      { label: 'Reflected XSS', code: "<img src=x onerror=alert(1)>" },
+                      { label: 'UNION extract flag', code: "' UNION SELECT 1,username,secret_flag,4 FROM users--" },
+                    ],
+                    target: '/search',
+                    btnLabel: 'Buka /search →',
+                  },
+                  {
+                    num: 4,
+                    title: 'Ping Nakal',
+                    tag: 'Command Injection',
+                    tagColor: 'bg-green-100 text-green-700 border-green-200',
+                    desc: 'Input ping langsung dijalankan di shell container. Kamu bisa menambah command apapun setelah IP.',
+                    hints: [
+                      { label: 'Lihat user server', code: '127.0.0.1; id' },
+                      { label: 'Baca /etc/passwd',  code: '127.0.0.1; cat /etc/passwd' },
+                      { label: 'Alternatif pipe',    code: '127.0.0.1 | whoami' },
+                    ],
+                    target: '/tools',
+                    btnLabel: 'Buka /tools →',
+                  },
+                  {
+                    num: 5,
+                    title: 'Intip File',
+                    tag: 'Path Traversal',
+                    tagColor: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+                    desc: 'Parameter file tidak divalidasi — kamu bisa keluar dari folder yang seharusnya dan baca file sistem.',
+                    hints: [
+                      { label: 'File normal',        code: 'public/docs/readme.txt' },
+                      { label: 'Keluar folder (../)', code: '../../etc/passwd' },
+                      { label: 'Info OS',            code: '../../proc/version' },
+                    ],
+                    target: '/view?file=public/docs/readme.txt',
+                    btnLabel: 'Buka /view →',
+                  },
+                  {
+                    num: 6,
+                    title: '??? (Temukan Sendiri)',
+                    tag: 'Secret Challenge',
+                    tagColor: 'bg-red-100 text-red-700 border-red-200',
+                    desc: 'Ada sesuatu yang tersembunyi di website ini. Tidak semua yang kelihatan adalah yang kamu sangka.',
+                    hints: [
+                      { label: 'Petunjuk 1', code: 'Buka /robots.txt — apa yang disembunyikan?' },
+                      { label: 'Petunjuk 2', code: 'Klik kanan → View Page Source di halaman utama.' },
+                      { label: 'Petunjuk 3', code: 'Inspect element footer di halaman komentar.' },
+                    ],
+                    target: null,
+                    btnLabel: null,
+                    secret: true,
+                  },
+                ];
+                %>
+
+                <% challenges.forEach(function(c) { %>
+                <div class="bg-white/65 backdrop-blur-md border border-gray-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4
+                            <%= c.secret ? 'border-dashed border-gray-300 bg-white/40' : '' %>">
+
+                    <!-- Header card -->
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <span class="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm font-black shrink-0
+                                         <%= c.secret ? 'bg-gray-400' : '' %>">
+                                <%= c.secret ? '?' : c.num %>
+                            </span>
+                            <div>
+                                <h3 class="font-bold text-base leading-tight"><%= c.title %></h3>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border <%= c.tagColor %>"><%= c.tag %></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Deskripsi -->
+                    <p class="text-sm text-gray-600 leading-relaxed"><%= c.desc %></p>
+
+                    <!-- Payload hints -->
+                    <div class="flex flex-col gap-2">
+                        <% c.hints.forEach(function(h) { %>
+                        <div class="bg-white/60 border border-gray-100 rounded-xl px-3 py-2">
+                            <p class="text-[10px] text-gray-400 font-semibold mb-0.5"><%= h.label %></p>
+                            <p class="code-pill text-gray-800 break-all"><%= h.code %></p>
+                        </div>
+                        <% }); %>
+                    </div>
+
+                    <!-- CTA button -->
+                    <% if (c.target) { %>
+                    <a href="<%= c.target %>"
+                       class="mt-auto bg-black text-white rounded-full py-2.5 px-5 text-sm font-semibold text-center hover:bg-gray-800 transition shadow-sm">
+                        <%= c.btnLabel %>
+                    </a>
+                    <% } else { %>
+                    <div class="mt-auto bg-gray-100 text-gray-400 rounded-full py-2.5 px-5 text-sm font-semibold text-center select-none">
+                        Temukan sendiri... 👀
+                    </div>
+                    <% } %>
+                </div>
+                <% }); %>
+
+            </div>
+
+            <!-- Footer note -->
+            <div class="mt-8 bg-white/50 backdrop-blur-sm border border-white/60 rounded-2xl p-5 text-center shadow-sm">
+                <p class="text-sm text-gray-600 leading-relaxed">
+                    Semua serangan tercatat realtime di
+                    <a href="/monitor" class="font-semibold underline hover:text-black transition">monitor</a>.
+                    Setiap deteksi menambah poin di leaderboard.<br>
+                    <span class="text-gray-400 text-xs">Ingat: ini environment terisolasi — jangan coba teknik yang sama di sistem lain.</span>
+                </p>
+            </div>
+
+        </div>
+    </main>
+
+</body>
+</html>

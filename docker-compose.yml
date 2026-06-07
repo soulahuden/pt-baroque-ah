@@ -1,0 +1,82 @@
+services:
+  app:
+    build: .
+    ports:
+      - "80:3000"
+    environment:
+      - PORT=3000
+      - DB_HOST=mysql
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - WAF_MODE=${WAF_MODE:-detect}
+      - MONITOR_TOKEN=${MONITOR_TOKEN}
+      - EVE_JSON_PATH=/var/log/suricata/eve.json
+    volumes:
+      - suricata-logs:/var/log/suricata:ro
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASS}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  suricata:
+    image: jasonish/suricata:latest
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_NICE
+    volumes:
+      - suricata-logs:/var/log/suricata
+      - ./suricata/suricata.yaml:/etc/suricata/suricata.yaml:ro
+      - ./suricata/custom.rules:/var/lib/suricata/rules/custom.rules:ro
+    # Sesuaikan interface dengan VPS kamu (cek: ip addr). Default: eth0
+    command: -i ${SURICATA_INTERFACE:-eth0}
+    restart: unless-stopped
+
+  evebox:
+    image: jasonish/evebox:latest
+    ports:
+      # Hanya bind ke localhost - akses via SSH tunnel: ssh -L 5636:127.0.0.1:5636 user@vps
+      - "127.0.0.1:5636:5636"
+    volumes:
+      - suricata-logs:/var/log/suricata:ro
+    command: >
+      -e /var/log/suricata/eve.json
+      --input-bookmark-directory /var/lib/evebox
+    networks:
+      - backend
+    restart: unless-stopped
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+    internal: true
+
+volumes:
+  suricata-logs:
+  mysql-data:

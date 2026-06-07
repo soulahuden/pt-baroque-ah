@@ -1,0 +1,33 @@
+# Custom Suricata rules untuk demo IDS/IPS
+# Rules ini dirancang khusus untuk mendeteksi serangan ke app PT. Baroque-ah
+# Setiap rule akan menghasilkan alert di eve.json yang ditampilkan di monitor
+
+# SQLi: UNION SELECT pattern (paling umum di demo)
+alert http any any -> any 80 (msg:"DEMO SQLi - UNION SELECT detected"; flow:to_server,established; http.method; content:"POST"; http.uri; content:"/"; http.request_body; content:"UNION"; nocase; content:"SELECT"; nocase; distance:0; within:50; sid:1000001; rev:2; classtype:web-application-attack;)
+
+# SQLi: OR-based bypass di login
+alert http any any -> any 80 (msg:"DEMO SQLi - OR-based login bypass"; flow:to_server,established; http.request_body; content:"' OR '"; nocase; sid:1000002; rev:1; classtype:web-application-attack;)
+
+# SQLi: comment-based (-- atau #)
+alert http any any -> any 80 (msg:"DEMO SQLi - SQL comment bypass"; flow:to_server,established; http.uri; pcre:"/(%27|')(\s|%20)*(--|%2D%2D|#)/i"; sid:1000003; rev:1; classtype:web-application-attack;)
+
+# XSS: <script> tag di request
+alert http any any -> any 80 (msg:"DEMO XSS - script tag detected"; flow:to_server,established; http.request_body; content:"<script"; nocase; sid:1000004; rev:1; classtype:web-application-attack;)
+
+# XSS: event handler (onerror, onload, dll)
+alert http any any -> any 80 (msg:"DEMO XSS - event handler detected"; flow:to_server,established; http.uri; pcre:"/on(error|load|click|mouse)(\s*)=/i"; sid:1000005; rev:1; classtype:web-application-attack;)
+
+# Path traversal: ../
+alert http any any -> any 80 (msg:"DEMO Path Traversal - directory traversal"; flow:to_server,established; http.uri; content:"../"; sid:1000006; rev:1; classtype:web-application-attack;)
+
+# Path traversal: URL-encoded %2e%2e
+alert http any any -> any 80 (msg:"DEMO Path Traversal - encoded traversal"; flow:to_server,established; http.uri; content:"%2e%2e"; nocase; sid:1000007; rev:1; classtype:web-application-attack;)
+
+# Command injection: semicolon atau pipe di parameter
+alert http any any -> any 80 (msg:"DEMO Command Injection - shell metachar"; flow:to_server,established; http.request_body; pcre:"/host=([^&]*)(;|\||`|&&|\|\|)/"; sid:1000008; rev:1; classtype:web-application-attack;)
+
+# Honeypot: akses ke /admin-backup
+alert http any any -> any 80 (msg:"DEMO Honeypot - admin-backup accessed"; flow:to_server,established; http.uri; content:"/admin-backup"; sid:1000009; rev:1; classtype:policy-violation;)
+
+# Honeypot: akses ke /secret-login
+alert http any any -> any 80 (msg:"DEMO Honeypot - secret-login accessed"; flow:to_server,established; http.uri; content:"/secret-login"; sid:1000010; rev:1; classtype:policy-violation;)

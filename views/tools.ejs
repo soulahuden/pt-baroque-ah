@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <%- include('partials/head') %>
+    <title>Tools — PT. Baroque-ah</title>
+</head>
+<body class="text-black min-h-screen flex flex-col relative overflow-hidden hero-gradient">
+
+    <img src="/img/bg.png" alt="" class="bg-img" onerror="this.style.display='none'">
+    <div class="hero-overlay"></div>
+
+    <%- include('partials/nav', { current: 'tools' }) %>
+
+    <main class="relative z-20 flex-grow px-8 py-8 max-w-3xl mx-auto w-full">
+
+        <div class="mb-6">
+            <h2 class="text-3xl font-bold tracking-tight">Network Tools</h2>
+            <p class="text-gray-500 text-sm mt-1">Target: Command Injection — input langsung dijalankan di shell container</p>
+        </div>
+
+        <!-- Ping tool -->
+        <div class="bg-white/70 backdrop-blur-md border border-gray-200 rounded-3xl shadow-xl p-6 mb-6">
+            <h3 class="text-base font-semibold mb-4 flex items-center gap-2">
+                <span class="w-6 h-6 bg-black rounded-full flex items-center justify-center text-white text-xs">P</span>
+                Ping Tool
+            </h3>
+
+            <form action="/tools/ping" method="POST" class="flex gap-3 mb-4">
+                <input type="text" name="host"
+                    value="<%= host %>"
+                    placeholder="127.0.0.1"
+                    class="flex-1 bg-white/80 border border-gray-200 rounded-full px-5 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-black/20">
+                <button type="submit"
+                    class="bg-black text-white px-7 py-3 rounded-full text-sm font-semibold hover:bg-gray-800 transition shadow-md">
+                    Ping
+                </button>
+            </form>
+
+            <div class="flex flex-wrap gap-2">
+                <span class="text-[10px] text-gray-400 font-semibold">Payload hint:</span>
+                <code class="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-mono">127.0.0.1; id</code>
+                <code class="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-mono">127.0.0.1 | whoami</code>
+                <code class="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-mono">127.0.0.1; cat /etc/passwd</code>
+            </div>
+
+            <!-- Command yang dieksekusi -->
+            <% if (cmd) { %>
+            <div class="mt-4 bg-white/50 border border-gray-200 rounded-xl px-4 py-2">
+                <p class="text-[10px] text-gray-400 font-semibold">Command yang dieksekusi:</p>
+                <code class="text-xs font-mono text-gray-700"><%= cmd %></code>
+            </div>
+            <% } %>
+        </div>
+
+        <!-- Output terminal -->
+        <% if (output !== null) { %>
+        <div class="bg-gray-950 border border-gray-800 rounded-3xl p-6 shadow-xl">
+            <div class="flex items-center gap-2 mb-4">
+                <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                <span class="text-gray-400 text-xs ml-2 font-mono">shell output</span>
+            </div>
+            <pre class="text-green-400 text-sm font-mono whitespace-pre-wrap break-all leading-relaxed"><%= output %></pre>
+        </div>
+        <% } %>
+
+    </main>
+
+</body>
+</html>

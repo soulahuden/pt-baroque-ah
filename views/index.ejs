@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <%- include('partials/head') %>
+    <title>PT. Baroque-ah — Demo Security Lab</title>
+</head>
+<!-- TODO: hapus login lama di /secret-login -->
+<body class="text-black min-h-screen flex flex-col relative overflow-hidden hero-gradient">
+
+    <!-- Background image (taruh file bg.png di public/img/) -->
+    <img src="/img/bg.png" alt="" class="bg-img" onerror="this.style.display='none'">
+    <div class="hero-overlay"></div>
+
+    <%- include('partials/nav', { current: 'home' }) %>
+
+    <!-- Hero content -->
+    <main class="relative z-20 flex-grow flex items-center px-16">
+        <div class="max-w-xl">
+
+            <!-- Badge -->
+            <div class="flex items-center bg-white/10 backdrop-blur-md border border-white/20 rounded-full pr-4 pl-1 py-1 w-fit mb-8 shadow-sm">
+                <span class="bg-white text-black text-[10px] font-bold px-2.5 py-1 rounded-full mr-3 tracking-wider">DEMO</span>
+                <span class="text-xs text-white/80 font-semibold tracking-wide">Live Security Lab</span>
+            </div>
+
+            <!-- Heading utama -->
+            <h1 class="text-7xl font-bold leading-[1.05] tracking-tighter mb-8 text-white drop-shadow-lg">
+                PT.<br>BAROQUE-AH
+            </h1>
+
+            <!-- Subtext card glass gelap -->
+            <div class="bg-black/30 backdrop-blur-sm border border-white/15 rounded-2xl p-4 mb-7 max-w-md shadow-sm">
+                <p class="text-white/80 text-sm leading-relaxed">
+                    Situs ini <strong class="text-white">sengaja dibuat rentan</strong> untuk demo IDS/IPS &amp; honeypot.<br>
+                    Masukkan nickname untuk mulai
+                </p>
+            </div>
+
+            <!-- Nickname form -->
+            <form action="/set-nickname" method="POST" class="flex gap-3 max-w-md">
+                <input
+                    type="text"
+                    name="nickname"
+                    placeholder="Nickname kamu…"
+                    value="<%= session.nickname || '' %>"
+                    maxlength="30"
+                    required
+                    class="flex-1 bg-white/10 backdrop-blur-md border border-white/25 rounded-full px-6 py-3 text-sm font-medium text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 shadow-sm"
+                >
+                <button type="submit"
+                    class="bg-white text-black px-7 py-3 rounded-full text-sm font-semibold hover:bg-white/90 transition shadow-md whitespace-nowrap">
+                    Mulai Serang →
+                </button>
+            </form>
+
+            <% if (session.nickname) { %>
+            <p class="mt-3 text-xs text-white/50">
+                Aktif sebagai: <strong class="text-white/80"><%= session.nickname %></strong>
+                &middot; <a href="/play" class="underline hover:text-white transition">Lihat tantangan &rarr;</a>
+            </p>
+            <% } %>
+        </div>
+
+        <!-- Toggle serangan — kanan layar -->
+        <div class="absolute right-14 top-1/2 -translate-y-1/2 flex flex-col gap-3">
+            <a href="/login"
+               class="bg-white text-black w-28 py-3 rounded-full text-sm font-bold text-center shadow-xl hover:bg-white/90 transition">
+                Login
+            </a>
+            <a href="/comments"
+               class="bg-white/10 backdrop-blur-md border border-white/25 hover:bg-white/20 transition w-28 py-3 rounded-full text-sm text-white font-bold text-center shadow-sm">
+                Komentar
+            </a>
+            <a href="/tools"
+               class="bg-white/10 backdrop-blur-md border border-white/25 hover:bg-white/20 transition w-28 py-3 rounded-full text-sm text-white font-bold text-center shadow-sm">
+                Tools
+            </a>
+        </div>
+    </main>
+
+</body>
+</html>
